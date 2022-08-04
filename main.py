@@ -2,6 +2,7 @@ import math
 import tkinter as tk
 import numpy as np
 import enum
+from math import sqrt
 from itertools import product, combinations
 from random import random
 
@@ -17,6 +18,7 @@ MIN_DIMENSION = 2
 
 
 def degrees_of_freedom(dimension):
+    """Number of independent 'axes' about which we can rotate"""
     return (dimension * (dimension - 1)) // 2
 
 
@@ -31,12 +33,17 @@ class Form(enum.Enum):
 
 
 def to_screen(pair):
+    """Converts a pair of cartesian coordinates to screen
+    coordinates"""
     x, y = pair
     return VIEW_CENTRE_X + int(x * UNIT_LENGTH), VIEW_CENTRE_Y + int(y * UNIT_LENGTH)
 
 
 def matrix(dimension, parameters):
+    """Creates the orthogonal matrix corresponding to the rotations
+    given by the parameters"""
     def angle():
+        """Generator for angles used"""
         for parameter in parameters:
             yield parameter * 2 * math.pi
     angle_generator = angle()
@@ -61,6 +68,7 @@ class Shape:
         self.edges = edges
 
     def draw(self, surface, parameters):
+        """Displays the shape on the given surface"""
         mat = matrix(self.dimension, parameters)
         surface.delete('all')
         for v1, v2 in self.edges:
@@ -70,6 +78,7 @@ class Shape:
 
     @classmethod
     def make(cls, dimension, form):
+        """Alternative constructor: specify form rather than edges"""
         if form == Form.CUBE:
             return cls(dimension, cube_edges(dimension))
         if form == Form.CROSS:
@@ -79,6 +88,7 @@ class Shape:
 
 
 def cube_edges(dimension):
+    """Generates the edges for the cube of the given dimension"""
     edges = []
     for direction in range(dimension):
         for pre_vertex in product([-0.5, 0.5], repeat=dimension - 1):
@@ -88,6 +98,7 @@ def cube_edges(dimension):
 
 
 def cross_edges(dimension):
+    """Generates the edges for the cross of the given dimension"""
     pre_vertices = np.identity(dimension)
     vertices_plus = [pre_vertices[i] for i in range(dimension)]
     vertices_minus = [-pre_vertices[i] for i in range(dimension)]
@@ -97,7 +108,16 @@ def cross_edges(dimension):
 
 
 def simplex_edges(dimension):
-    vertices = [np.identity(dimension)[i] for i in range(dimension)]
+    """Generates the edges for the simplex of the given dimension"""
+    vertex = [1] + [0] * (dimension - 1)
+    vertices = [np.array(vertex)]
+    sum_of_squares = 0
+    for i in range(dimension):
+        vertex[i] = - vertex[i] / (dimension - i)
+        sum_of_squares += vertex[i] ** 2
+        if i+1 < dimension:
+            vertex[i+1] = sqrt(1-sum_of_squares)
+        vertices.append(np.array(vertex))
     return list(combinations(vertices, 2))
 
 
